@@ -7,6 +7,7 @@
 $('head').append('<link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">');
 
 $('head').append($('<style>').text(`
+
 #quest_manager {
 	color: #444;
 	width: 100vw;
@@ -51,26 +52,34 @@ $('head').append($('<style>').text(`
 #quest_results_container, #tree_container {
 	margin-top: 30px;
 	height: calc(100% - 30px);
-	overflow: auto;
+	overflow: auto;    
+	padding: 1em;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
 }
 
 #tree {
-	height: 100%;
+	flex-grow: 1;
 }
 
 #quest_search{
   box-sizing: border-box;
   position: relative;
-  border: 1px solid #999;
-  padding: 3px 10px;
-  border-radius: 20px;
-  height: 2.3em;
-  width: 260px;
+  border: 1px solid #ccf;
+  border-radius: 1em;
+  height: 2em;
+  width: 20em;
+  padding-left: 1em;
   overflow: hidden;
+  background-color: white;
+  display: flex;
+  align-items: stretch;
 }
-#quest_search input[type="text"]{
+
+#quest_search input[type="text"] {
   border: none;
-  height: 2.0em;
+  flex-grow: 1;
 }
 #quest_search input[type="text"]:focus {
   outline: 0;
@@ -78,16 +87,13 @@ $('head').append($('<style>').text(`
 #quest_search input[type="submit"]{
   cursor: pointer;
   font-family: FontAwesome;
-  font-size: 1.3em;
-  border: none;
-  background: none;
+  font-size: 150%;
   color: #3879D9;
-  position: absolute;
-  width: 2.5em;
-  height: 2.5em;
-  right: 0;
-  top: -10px;
-  outline : none;
+  margin: 0;
+  padding: 0 0.5em;
+  border: none;
+  border-left: solid 1px #ccf;
+  background-color: #eef;
 }
 
 #quest_search_container #status {
@@ -105,6 +111,11 @@ $('head').append($('<style>').text(`
 }
 .status-select input[type="radio"]:checked + * {
   color: #444;
+}
+.display-tree {
+	width: 7em;
+	padding: 0.25em 0.5em;
+  background-color: #eef;
 }
 
 `));
@@ -153,14 +164,13 @@ const getTable = (tableEl) => {
 
 //////////////////////
 
-$('#contents table').each((_, t) => {
+$("h2:contains('最新任務')").nextUntil("h2:contains('終了済み')").find("table").each((_, t) => {
 	const th = $(t).find('thead > tr > th')[0];
 
 	// ID ではじまるテーブル
 	if(th && $(th).text() == 'ID') {
 
 		const table = getTable(t);
-		// console.table(table)
 
 		let prev_id = null;
 	  // 行（任務１つずつ）
@@ -230,7 +240,6 @@ $('#contents table').each((_, t) => {
 });
 
 console.log(quests.length);
-console.log(triggers.length);
 
 // index => status  0: 未出現　1: 出現中　2: クリア済
 const status = Array.from({ length: quests.length }, () => 1);
@@ -323,10 +332,17 @@ const displayTree = async (root) => {
 	console.log(nodes);
 	console.log(links);
 
+	const categories = ['編成', '出撃', '演習', '遠征', '補給', '工廠', '改修', 'その他'];
+
 	const option = {
 	  tooltip: {},
 	  animationDurationUpdate: 1500,
 	  animationEasingUpdate: 'quinticInOut',
+	  // color: ['#bfb', '#fdd', '#dfd', '#ddf', '#ffd', '#feb', '#ecf', '#fef'],
+	  color: ['#1d1', '#d77', '#7d7', '#77d', '#dd7', '#da1', '#a4d', '#dad'],
+    legend: [{
+    	data: categories,
+    }],
 	  series: [
 	    {
 	      type: 'graph',
@@ -351,10 +367,13 @@ const displayTree = async (root) => {
 	      lineStyle: {
 	        opacity: 0.7,
 	        width: 2,
-	      }
+	      },
+	      categories: categories.map(c => {return {name: c}})
 	    }
 	  ]
 	};
+
+
 
 	var chartDom = document.getElementById('tree');
 	$('#tree_popup').show();
@@ -471,7 +490,6 @@ $('#quest_search').on('submit', (e) => {
 		});
 
 		$('.display-tree').on('click', (e) => {
-			console.log(e.target);
 			console.log($(e.target).data('index'));
 			displayTree($(e.target).data('index'));
 		});
