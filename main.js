@@ -26,7 +26,7 @@ $('head').append($('<style>').text(`
 	padding: 1em;
 
 	backdrop-filter: blur(20px);
-	border: 1px solid rgba(255, 255, 255, 0.4);
+	border: 1px solid rgba(255, 255, 255, 0.8);
 	border-radius: 5px;	
 }
 
@@ -36,12 +36,21 @@ $('head').append($('<style>').text(`
 	position: fixed;
 	left: 1em;
 	right: 1em;
-	top: 60px;
 	bottom: 1em;
 
 	backdrop-filter: blur(20px);
-	border: 1px solid rgba(255, 255, 255, 0.4);
+	border: 1px solid rgba(255, 255, 255, 0.8);
 	border-radius: 5px;
+
+	padding: 1em;
+}
+
+#quest_popup {
+	top: 60px;
+}
+
+#tree_popup {
+	top: 50%;
 }
 
 #close_quest_results, #close_tree {
@@ -278,25 +287,26 @@ let chart_initialized = false;
 const displayTree = async (root) => {
 	if(!chart_initialized) {
 	  try {
-	    await loadScript('https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js');
+	    // await loadScript('https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js');
+	    // await loadScript('https://cdn.jsdelivr.net/npm/mxgraph@3.9.12/javascript/mxClient.min.js');
+	    await loadScript('https://cdn.jsdelivr.net/npm/@maxgraph/core@0.3.0/dist/maxgraph.js');
+
 	  } catch (error) {
 	    console.error('Failed to load ECharts:', error);
 	    return;
 	  }
 	}
 	chart_initialized = true;	
-	console.log(triggers)
-	console.log(prevs)
+	// console.log(triggers)
+	// console.log(prevs)
 
 
 	const nodes = [];
 	const indexes = {};
 
-	let x = 0;
-	const iter = (index, y = 0) => {
+	const iter = (index) => {
 		if(indexes[index] !== undefined) {
 			const n = nodes[indexes[index]];
-			// if(y * 100 > n.y) n.y = y * 100;
 			n.value++;
 			return false;
 		}
@@ -304,83 +314,95 @@ const displayTree = async (root) => {
 		const q = quests[index].find('td');
 		const id = $(q[0]).text();
 		const name = $(q[1]).text();
-		const category = id.charCodeAt(0) - 'A'.charCodeAt(0);
+		let category = id.charCodeAt(0) - 'A'.charCodeAt(0);
+		if(category < 0 || category > 7) category = 7;
 		indexes[index] = nodes.length;
-		nodes.push({name: name, index: index, category: category, x: x * 250, y: y * 50});
+		nodes.push({id: id, name: name, index: index, category: category});
 
 		let new_node = false;
 		if(prevs[index] && prevs[index].length > 0) {
 			for(let p of prevs[index]) {
-				new_node |= iter(p, y + 1);
+				new_node |= iter(p);
 			}
 		}
-		if(!new_node)
-			x++;
 
 		return true;
 	}
 	iter(root);
 
-	const links = [];
+	$('#tree').empty();
+	$('#tree_popup').show();
+
+	const container = document.getElementById('tree');
+	const graph = new maxgraph.Graph(container);
+	const parent = graph.getDefaultParent()
+	const layout = new maxgraph.HierarchicalLayout(graph);
+	layout.interRankCellSpacing = 20; // 縦の間隔
+
+	// 文字幅
+	const ctx = document.createElement('canvas').getContext('2d');
+  const style = getComputedStyle(document.querySelector('#tree'));
+  const font = style.getPropertyValue('font');
+  ctx.font = font;
+
+	// ノード追加
+	const colors = ['#bfb', '#fdd', '#dfd', '#ddf', '#ffd', '#feb', '#ecf', '#fef'];
+	//const colors = ['#1d1', '#d77', '#7d7', '#77d', '#dd7', '#da1', '#a4d', '#dad'];
+	const vertices = nodes.map(n => {
+		const cell = graph.insertVertex({
+		  parent: parent,
+		  id: n.index,
+		  value: n.name, //`<a href="#id-${n.id}">${n.name}</a>`, 
+		  position: [0, 0],	
+		  size: [Math.max(ctx.measureText(n.name).width + 10, 150), 30],
+		  style: { fillColor: colors[n.category], gradientColor: '#fff', borderColor: '#fff' },	
+		})
+	  return cell;
+	});
+
+	// エッジ追加
 	for(let i = 0; i < nodes.length; i++) {
 		const index = nodes[i].index;
 		for(let prev_index of prevs[index]) {
-			links.push({source: nodes[indexes[prev_index]].name, target: nodes[i].name, value: 1});
+			graph.insertEdge({
+				parent: parent, 
+				source: vertices[indexes[prev_index]], 
+				target: vertices[i],
+				style: {rounded: true}
+			})	
 		}
 	}
 
-	console.log(nodes);
-	console.log(links);
+  // invalidat edit
+	graph.setEnabled(false);
+  graph.addListener(maxgraph.InternalEvent.CLICK, (sender, evt) => {
+    var cell = evt.getProperty("cell"); // cell may be null
+    if (cell != null) {
+      const q = quests[cell.id].find('td');
+      const id = $(q[0]).text();
+    	location.href = '#id-' + id;
+    	scrollBy(0, -70);
+    }
+    evt.consume();
+  });
 
-	const categories = ['編成', '出撃', '演習', '遠征', '補給', '工廠', '改修', 'その他'];
+	// graph.setHtmlLabels(true);
+  // graph.getLinkForCell = cell => {
+	// 	const q = quests[cell.id].find('td');
+	// 	const id = $(q[0]).text();
+  // 	console.log(id);
+  // 	return '#id-' + id;
+  // }
 
-	const option = {
-	  tooltip: {},
-	  animationDurationUpdate: 1500,
-	  animationEasingUpdate: 'quinticInOut',
-	  // color: ['#bfb', '#fdd', '#dfd', '#ddf', '#ffd', '#feb', '#ecf', '#fef'],
-	  color: ['#1d1', '#d77', '#7d7', '#77d', '#dd7', '#da1', '#a4d', '#dad'],
-    legend: [{
-    	data: categories,
-    }],
-	  series: [
-	    {
-	      type: 'graph',
-	      // layout: 'none',
-	      // symbol: 'rect',
-	      // symbolSize: [200, 30],
-	      roam: true,
-	      label: {
-	        show: true,
-	        width: 180,
-	        // height: 30,
-	        overflow: 'truncate',
-	        position: 'right'
-	      },
-	      edgeSymbol: ['none', 'arrow'],
-	      // edgeSymbolSize: [5, 10],
-	      // edgeLabel: {
-	      //   fontSize: 20
-	      // },
-	      data: nodes,
-	      links: links,
-	      lineStyle: {
-	        opacity: 0.7,
-	        width: 2,
-	      },
-	      categories: categories.map(c => {return {name: c}})
-	    }
-	  ]
-	};
+	// graph.setTooltips(true);
+  // graph.getTooltipForCell = (cell) => {
+  // 	console.log(cell.id);
+  // 	return quests[cell.id | 0].get(0)
+  // }
 
-
-
-	var chartDom = document.getElementById('tree');
-	$('#tree_popup').show();
-	var myChart = echarts.init(chartDom);
-	myChart.setOption(option);
-
-}
+	// 追加したノード・エッジに基づいてレイアウトの自動計算を行う
+	layout.execute(parent);
+};
 
 const loadScript = (url) => {
   return new Promise((resolve, reject) => {
@@ -490,7 +512,7 @@ $('#quest_search').on('submit', (e) => {
 		});
 
 		$('.display-tree').on('click', (e) => {
-			console.log($(e.target).data('index'));
+			// console.log($(e.target).data('index'));
 			displayTree($(e.target).data('index'));
 		});
 
