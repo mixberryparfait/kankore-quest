@@ -8,23 +8,23 @@
  をブックマークに登録
  - chrome の場合はブックマークバーにリンクをドラッグ
 
- <img src="images/add_bookmarklet.jpg" width="70%" />
+ <kbd><img src="images/add_bookmarklet.jpg" width="80%" /></kbd>
 
 2. [艦これウィキ任務ページ](https://wikiwiki.jp/kancolle/任務) を開く。
 
 3. 1 で作ったブックマークをクリックしてブックマークレットを実行。
 
-  <img src="images/search_form.jpg" width="70%" />
+  <kbd><img src="images/search_form.jpg" width="80%" /></kbd>
 
 4. 右上に検索窓が追加されるので、適当なキーワードを入力して検索すると、フィルタした任務のみが表示されます。
 
    例: "勲章" や "5-5" と入力すると、特定な報酬や同時に消化できる任務が検索できます。
 
-  <img src="images/search_result.jpg" width="70%" />
+  <kbd><img src="images/search_result.jpg" width="80%" /></kbd>
 
 5. 検索後、表の右端にある"ツリー表示"をクリックすると、その任務に必要な任務ツリーが表示されます。
 
-  <img src="images/graph.jpg" width="70%" />
+  <kbd><img src="images/graph.jpg" width="80%" /></kbd>
 
 
 ## 仕様
